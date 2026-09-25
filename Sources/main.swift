@@ -1,10 +1,10 @@
 import AppKit
 import ServiceManagement
 
-/// Macky is a menu-bar toolbox. Each tool is a menu item added above the
+/// Mackey is a menu-bar toolbox. Each tool is a menu item added above the
 /// first separator in `applicationDidFinishLaunching`.
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    private let appName = "Macky"
+    private let appName = "Mackey"
     private var statusItem: NSStatusItem!
     private let clearItem = NSMenuItem(title: "Clear Notifications", action: #selector(clearNotifications), keyEquivalent: "")
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")

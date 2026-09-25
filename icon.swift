@@ -2,7 +2,7 @@ import AppKit
 
 let destination = CommandLine.arguments.count > 1
     ? CommandLine.arguments[1]
-    : "/tmp/macky-master.png"
+    : "/tmp/mackey-master.png"
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
