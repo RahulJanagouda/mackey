@@ -2,7 +2,7 @@ import AppKit
 
 let destination = CommandLine.arguments.count > 1
     ? CommandLine.arguments[1]
-    : "/tmp/clear-notifications-master.png"
+    : "/tmp/macky-master.png"
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
@@ -12,19 +12,17 @@ let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { r
     NSColor(calibratedWhite: 0.11, alpha: 1).setFill()
     NSBezierPath(roundedRect: rect.insetBy(dx: 48, dy: 48), xRadius: 200, yRadius: 200).fill()
 
-    guard let symbol = NSImage(systemSymbolName: "bell.slash.fill", accessibilityDescription: nil) else {
-        return false
-    }
-    let config = NSImage.SymbolConfiguration(pointSize: 560, weight: .semibold)
-        .applying(NSImage.SymbolConfiguration(paletteColors: [.white]))
-    let rendered = symbol.withSymbolConfiguration(config) ?? symbol
-    let length: CGFloat = 560
-    rendered.draw(in: NSRect(
-        x: (side - length) / 2,
-        y: (side - length) / 2 - 16,
-        width: length,
-        height: length
-    ))
+    let mark = "M" as NSString
+    let font = NSFont.systemFont(ofSize: 640, weight: .bold)
+    let attributes: [NSAttributedString.Key: Any] = [
+        .font: font,
+        .foregroundColor: NSColor.white,
+    ]
+    let markSize = mark.size(withAttributes: attributes)
+    mark.draw(
+        at: NSPoint(x: (side - markSize.width) / 2, y: (side - markSize.height) / 2 - 24),
+        withAttributes: attributes
+    )
     return true
 }
 
@@ -35,5 +33,4 @@ guard let tiff = image.tiffRepresentation,
     exit(1)
 }
 
-let url = URL(fileURLWithPath: destination)
-try png.write(to: url)
+try png.write(to: URL(fileURLWithPath: destination))

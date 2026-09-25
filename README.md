@@ -1,10 +1,8 @@
-# Clear Notifications
+# Macky
 
-A macOS menu-bar app that dismisses every notification in Notification Center.
+A macOS menu-bar toolbox. Clear Notifications is the first tool. More can be added as menu items later.
 
-Click the bell in the menu bar and choose **Clear All Notifications**. The app stays out of the Dock. **Open at Login** keeps it running after a restart.
-
-macOS has no public API for clearing another app’s notifications. This app uses Accessibility to press each alert’s Close or Clear All action, including grouped stacks.
+Macky stays out of the Dock. Click **Macky** in the menu bar, then choose a tool.
 
 ## Requirements
 
@@ -14,39 +12,34 @@ macOS has no public API for clearing another app’s notifications. This app use
 ## Install
 
 ```bash
-git clone https://github.com/RahulJanagouda/clear-notifications.git
-cd clear-notifications
+git clone https://github.com/RahulJanagouda/macky.git
+cd macky
 ./build.sh
+open "$HOME/Applications/Macky.app"
 ```
 
-`build.sh` compiles the app and installs it to `~/Applications/Clear Notifications.app`, then launches nothing on its own. Open the app once:
+`build.sh` installs the app to `~/Applications/Macky.app`. Set `MACKY_APP_DEST` to install somewhere else.
 
-```bash
-open "$HOME/Applications/Clear Notifications.app"
-```
+## Clear Notifications
 
-## Accessibility access
+macOS has no public API for clearing another app’s notifications. This tool uses Accessibility to press each alert’s Close or Clear All action, including grouped stacks.
 
-The first time you clear notifications, macOS asks you to allow Clear Notifications under **System Settings → Privacy & Security → Accessibility**.
-
-Turn the switch on, then choose **Clear All Notifications** again. If the switch is already on and macOS still prompts, turn it off and back on. Rebuilding the app changes its signature, so a new build needs that switch flipped again.
+The first time you use it, allow **Macky** under **System Settings → Privacy & Security → Accessibility**, then choose **Clear Notifications** again. If the switch is already on and macOS still prompts, turn it off and back on. A new build has a new signature, so the switch needs to be flipped again after you rebuild.
 
 ## Menu
 
 | Item | What it does |
 | --- | --- |
-| Clear All Notifications | Dismisses the notifications currently in Notification Center. The label includes the count when Accessibility access is granted. |
-| Open at Login | Registers the app as a login item. |
-| Quit Clear Notifications | Quits the menu-bar app. |
+| Clear Notifications | Dismisses the notifications currently in Notification Center. The label includes the count when Accessibility access is granted. |
+| Open at Login | Registers Macky as a login item. |
+| Quit Macky | Quits the menu-bar app. |
 
-The icon briefly turns into a checkmark after a clear.
+New tools go in `Sources/main.swift`, above the first separator in the menu.
 
 ## Develop
-
-The app is one Swift file, `Sources/main.swift`, plus `Info.plist` and `icon.swift`. `LSUIElement` is set so it runs as a menu-bar agent.
 
 ```bash
 ./build.sh
 ```
 
-Override the install location with `CLEAR_APP_DEST` if you want the bundle somewhere other than `~/Applications`.
+`Sources/main.swift` is the menu bar. `Sources/ClearNotifications.swift` is the clear-notifications tool. `LSUIElement` in `Info.plist` keeps Macky out of the Dock.
