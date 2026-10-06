@@ -90,7 +90,9 @@ enum NotificationCleaner {
     }
 
     static func clearAll() -> Result {
-        guard isTrusted(prompt: true) else { return .needsPermission }
+        // Permission prompting is owned by the caller on the main thread. This
+        // method runs on the worker queue, so only re-check access here.
+        guard isTrusted(prompt: false) else { return .needsPermission }
         let before = count()
         var previous = Int.max
         var stuckPasses = 0

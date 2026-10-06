@@ -9,7 +9,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let clearItem = NSMenuItem(title: "Clear Notifications", action: #selector(clearNotifications), keyEquivalent: "")
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Open at Login", action: #selector(toggleLogin), keyEquivalent: "")
+    private let notificationQueue = DispatchQueue(
+        label: "com.rahuljanagouda.mackey.notifications",
+        qos: .userInitiated
+    )
     private var isClearing = false
+    private var isCounting = false
     private var statusMessage: String?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -44,10 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         guard !isClearing else { return }
         if NotificationCleaner.isTrusted(prompt: false) {
-            let waiting = NotificationCleaner.count()
-            clearItem.title = waiting == 0
-                ? "Clear Notifications"
-                : "Clear Notifications (\(waiting))"
+            refreshNotificationCount()
         } else {
             clearItem.title = "Clear Notifications"
         }
@@ -66,17 +68,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setTitle("Clearing…")
         showStatus("Clearing…")
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
+        notificationQueue.async { [weak self] in
             let result = NotificationCleaner.clearAll()
-            self.isClearing = false
-            switch result {
-            case .needsPermission:
-                self.showStatus("Turn \(self.appName) off and on in Accessibility, then try again")
-                self.showIdleTitle()
-            case .cleared(let count):
-                self.showStatus(count == 0 ? "Nothing to clear" : "Cleared \(count)")
-                self.flashTitle("Cleared")
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isClearing = false
+                switch result {
+                case .needsPermission:
+                    self.showStatus("Turn \(self.appName) off and on in Accessibility, then try again")
+                    self.showIdleTitle()
+                case .cleared(let count):
+                    self.showStatus(count == 0 ? "Nothing to clear" : "Cleared \(count)")
+                    self.flashTitle("Cleared")
+                }
+            }
+        }
+    }
+
+    private func refreshNotificationCount() {
+        guard !isCounting else { return }
+        isCounting = true
+        notificationQueue.async { [weak self] in
+            let waiting = NotificationCleaner.count()
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isCounting = false
+                guard !self.isClearing else { return }
+                self.clearItem.title = waiting == 0
+                    ? "Clear Notifications"
+                    : "Clear Notifications (\(waiting))"
             }
         }
     }

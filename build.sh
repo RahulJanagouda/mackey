@@ -4,14 +4,22 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP="${MACKEY_APP_DEST:-$HOME/Applications/Mackey.app}"
-ICONSET="$(mktemp -d)/AppIcon.iconset"
+TEMP_DIR="$(mktemp -d)"
+ICONSET="$TEMP_DIR/AppIcon.iconset"
+SDK="$(xcrun --sdk macosx --show-sdk-path)"
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$ICONSET"
 
-swiftc -O -framework AppKit -framework ServiceManagement \
-  -o "$APP/Contents/MacOS/Mackey" \
-  "$ROOT"/Sources/*.swift
+for arch in arm64 x86_64; do
+  swiftc -O -target "$arch-apple-macos14.0" -sdk "$SDK" \
+    -framework AppKit -framework ServiceManagement \
+    -o "$TEMP_DIR/Mackey-$arch" \
+    "$ROOT"/Sources/*.swift
+done
+lipo -create "$TEMP_DIR/Mackey-arm64" "$TEMP_DIR/Mackey-x86_64" \
+  -output "$APP/Contents/MacOS/Mackey"
 
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 
