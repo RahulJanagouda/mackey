@@ -1,6 +1,10 @@
 # Mackey
 
-Mackey is a lightweight macOS menu-bar toolbox for clearing Notification Center and controlling Spaces, including while using Apple Screen Sharing.
+Mackey is a lightweight macOS menu-bar toolbox for clearing Notification Center and controlling Spaces with ease of shortcuts, including while using Apple Screen Sharing.
+
+You might say, I can open the "notification drawer", expand on "all notification", and then click on "clear" and then on "all notifications". but thats 4 steps every time you want to clear, this app does all that and more with shortcuts.
+
+My use case: I use my home security camera which sends persistent notifications on to mac os. I cant turn them off nor all are interesting. I use this for that.
 
 It stays out of the Dock. Click **Mackey** in the menu bar to use a tool or open Settings.
 
