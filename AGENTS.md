@@ -10,9 +10,11 @@
 
 - All AppKit UI mutations must happen on the main thread.
 - Notification Center Accessibility traversal can block. Keep counting and clearing on the dedicated serial `notificationQueue`; never move it back to the main thread.
-- Register only explicit global shortcuts with `RegisterEventHotKey`. Do not add a general event tap or keyboard logger. Shortcut recording must require Control or Command.
+- Register only explicit keyboard shortcuts with `RegisterEventHotKey`. Do not add a general event tap or keyboard logger. Shortcut recording must require Control or Command.
+- Controller Mode may use AppKit’s public global `.scrollWheel` monitor, but it must ignore non-precise scrolling, require Command, and act only while Apple Screen Sharing is foreground. It must never record, persist, or transmit raw gesture data.
 - Space switching synthesizes `Control–Left/Right`. It depends on the corresponding Mission Control shortcuts remaining enabled in System Settings.
 - Screen Sharing may intercept shortcuts on the controlling Mac. Defaults must remain uncommon, and shortcuts must stay user-configurable.
+- Controller Mode belongs on the controlling Mac only. It must unregister local Previous/Next hotkeys while enabled so its forwarded shortcut reaches Screen Sharing; Clear Notifications should remain registered.
 
 ## Permissions and signing
 

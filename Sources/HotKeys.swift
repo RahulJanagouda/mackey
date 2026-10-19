@@ -152,6 +152,7 @@ final class HotKeyManager {
     private var registeredHotKeys: [EventHotKeyRef] = []
     private let actionHandler: (HotKeyAction) -> Void
     private(set) var shortcuts = ShortcutStore.load()
+    private var spaceHotKeysEnabled = true
 
     init(actionHandler: @escaping (HotKeyAction) -> Void) {
         self.actionHandler = actionHandler
@@ -213,6 +214,13 @@ final class HotKeyManager {
         return false
     }
 
+    func setSpaceHotKeysEnabled(_ enabled: Bool) {
+        guard spaceHotKeysEnabled != enabled else { return }
+        spaceHotKeysEnabled = enabled
+        unregisterAll()
+        _ = register(shortcuts)
+    }
+
     func resetToDefaults() -> Bool {
         let defaults = ShortcutStore.defaults
         let previous = shortcuts
@@ -227,7 +235,7 @@ final class HotKeyManager {
     }
 
     private func register(_ shortcuts: [HotKeyAction: KeyboardShortcut]) -> Bool {
-        for action in HotKeyAction.allCases {
+        for action in HotKeyAction.allCases where spaceHotKeysEnabled || action == .clearNotifications {
             guard let shortcut = shortcuts[action] else { return false }
             var reference: EventHotKeyRef?
             let identifier = EventHotKeyID(signature: Self.signature, id: action.rawValue)

@@ -43,13 +43,25 @@ final class ShortcutRecorderField: NSTextField {
 
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let hotKeyManager: HotKeyManager
+    private let controllerModeManager: ControllerModeManager
     private var fields: [HotKeyAction: ShortcutRecorderField] = [:]
     private let errorLabel = NSTextField(labelWithString: "")
+    private lazy var controllerModeCheckbox = NSButton(
+        checkboxWithTitle: "Enable Controller Mode on this Mac",
+        target: self,
+        action: #selector(toggleControllerMode)
+    )
+    private lazy var reverseDirectionCheckbox = NSButton(
+        checkboxWithTitle: "Reverse horizontal gesture direction",
+        target: self,
+        action: #selector(toggleReverseDirection)
+    )
 
-    init(hotKeyManager: HotKeyManager) {
+    init(hotKeyManager: HotKeyManager, controllerModeManager: ControllerModeManager) {
         self.hotKeyManager = hotKeyManager
+        self.controllerModeManager = controllerModeManager
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 330),
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 480),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -118,7 +130,21 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         note.textColor = .secondaryLabelColor
         note.font = .systemFont(ofSize: 11)
 
-        let stack = NSStackView(views: [title, explanation, grid, errorLabel, resetButton, note])
+        let controllerTitle = NSTextField(labelWithString: "Screen Sharing Controller")
+        controllerTitle.font = .systemFont(ofSize: 16, weight: .semibold)
+
+        let controllerExplanation = NSTextField(wrappingLabelWithString:
+            "Enable this only on the Mac controlling another Mac. While Apple Screen Sharing is foreground, hold Command and scroll horizontally with two fingers to switch Spaces on the remote Mac. Both Macs must use matching Previous/Next shortcuts."
+        )
+        controllerExplanation.textColor = .secondaryLabelColor
+        let separator = NSBox()
+        separator.boxType = .separator
+
+        let stack = NSStackView(views: [
+            title, explanation, grid, errorLabel, resetButton, note,
+            separator, controllerTitle, controllerExplanation,
+            controllerModeCheckbox, reverseDirectionCheckbox,
+        ])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -132,6 +158,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
             explanation.widthAnchor.constraint(equalTo: stack.widthAnchor),
             note.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            separator.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            controllerExplanation.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
 
@@ -140,6 +168,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             fields[action]?.shortcut = hotKeyManager.shortcuts[action] ?? action.defaultShortcut
         }
         errorLabel.stringValue = ""
+        controllerModeCheckbox.state = controllerModeManager.isEnabled ? .on : .off
+        reverseDirectionCheckbox.state = controllerModeManager.reversesDirection ? .on : .off
+        reverseDirectionCheckbox.isEnabled = controllerModeManager.isEnabled
     }
 
     @objc private func resetDefaults() {
@@ -148,5 +179,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         } else {
             errorLabel.stringValue = "A default shortcut is already in use."
         }
+    }
+
+    @objc private func toggleControllerMode() {
+        controllerModeManager.setEnabled(controllerModeCheckbox.state == .on)
+        reverseDirectionCheckbox.isEnabled = controllerModeManager.isEnabled
+    }
+
+    @objc private func toggleReverseDirection() {
+        controllerModeManager.setReversesDirection(reverseDirectionCheckbox.state == .on)
     }
 }

@@ -10,11 +10,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let nextSpaceItem = NSMenuItem(title: "Next Space", action: #selector(nextSpace), keyEquivalent: "")
     private let clearItem = NSMenuItem(title: "Clear Notifications", action: #selector(clearNotifications), keyEquivalent: "")
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let controllerModeItem = NSMenuItem(title: "Screen Sharing Controller Mode", action: #selector(toggleControllerMode), keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Open at Login", action: #selector(toggleLogin), keyEquivalent: "")
     private lazy var hotKeyManager = HotKeyManager { [weak self] action in
         self?.handleHotKey(action)
     }
-    private lazy var settingsWindow = SettingsWindowController(hotKeyManager: hotKeyManager)
+    private lazy var controllerModeManager = ControllerModeManager(
+        shortcutProvider: { [weak self] action in self?.hotKeyManager.shortcuts[action] },
+        statusHandler: { [weak self] message in self?.flashTitle(message) },
+        enabledHandler: { [weak self] enabled in self?.controllerModeDidChange(enabled) }
+    )
+    private lazy var settingsWindow = SettingsWindowController(
+        hotKeyManager: hotKeyManager,
+        controllerModeManager: controllerModeManager
+    )
     private let notificationQueue = DispatchQueue(
         label: "com.rahuljanagouda.mackey.notifications",
         qos: .userInitiated
@@ -31,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         previousSpaceItem.target = self
         nextSpaceItem.target = self
         clearItem.target = self
+        controllerModeItem.target = self
         loginItem.target = self
         statusLine.isEnabled = false
         statusLine.isHidden = true
@@ -47,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let settings = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
+        menu.addItem(controllerModeItem)
         menu.addItem(loginItem)
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit \(appName)", action: #selector(quit), keyEquivalent: "q")
@@ -54,6 +65,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(quit)
         statusItem.menu = menu
         _ = hotKeyManager
+        _ = controllerModeManager
+        hotKeyManager.setSpaceHotKeysEnabled(!controllerModeManager.isEnabled)
+        controllerModeItem.state = controllerModeManager.isEnabled ? .on : .off
 
         if CommandLine.arguments.contains("--settings") {
             DispatchQueue.main.async { [weak self] in self?.showSettings() }
@@ -62,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         updateLoginItem()
+        controllerModeItem.state = controllerModeManager.isEnabled ? .on : .off
         if let statusMessage {
             statusLine.isHidden = false
             statusLine.title = statusMessage
@@ -114,6 +129,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func showSettings() {
         settingsWindow.present()
+    }
+
+    @objc private func toggleControllerMode() {
+        controllerModeManager.setEnabled(!controllerModeManager.isEnabled)
+    }
+
+    private func controllerModeDidChange(_ enabled: Bool) {
+        hotKeyManager.setSpaceHotKeysEnabled(!enabled)
+        controllerModeItem.state = enabled ? .on : .off
+        showStatus(enabled ? "Controller Mode enabled" : "Controller Mode disabled")
     }
 
     private func handleHotKey(_ action: HotKeyAction) {
@@ -207,6 +232,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
 if CommandLine.arguments.contains("--trusted") {
     fputs("\(NotificationCleaner.isTrusted(prompt: false))\n", stdout)
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--send-controller-previous") ||
+   CommandLine.arguments.contains("--send-controller-next") {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.accessory)
+    guard let screenSharing = NSWorkspace.shared.runningApplications.first(where: {
+        $0.bundleIdentifier == "com.apple.ScreenSharing"
+    }) else {
+        fputs("FAIL: Screen Sharing is not running\n", stderr)
+        exit(1)
+    }
+    let action: HotKeyAction = CommandLine.arguments.contains("--send-controller-previous")
+        ? .previousSpace
+        : .nextSpace
+    guard let shortcut = ShortcutStore.load()[action] else { exit(1) }
+    KeyboardShortcutSender.send(shortcut, to: screenSharing.processIdentifier)
+    RunLoop.main.run(until: Date().addingTimeInterval(0.4))
+    fputs("SENT: \(shortcut.displayName) to Screen Sharing\n", stdout)
     exit(0)
 }
 
